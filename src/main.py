@@ -1,43 +1,26 @@
+import pathlib
 from parser import get_functions_from_file
 from generator import DocGenerator
-import pathlib
 
 def main():
-    # 1. Initialize our AI engine
     gen = DocGenerator(model_name="llama3")
     
-    # 2. Pick a file to document (make sure this file exists in /tests)
-    target_file = "tests/sample_messy_code.py"
-    print(f"🔍 Analyzing {target_file}...")
+    # 1. Target the entire folder instead of one file
+    test_folder = pathlib.Path("tests")
     
-    # 3. Extract the "messy" functions
-    functions = get_functions_from_file(target_file)
-    
-    readme_content = f"# Documentation for {target_file}\n\n"
-    readme_content += "## ⚙️ Function Overview\n\n"
-
-    # 4. Loop through functions and get AI summaries
-    for func in functions:
-        print(f"🤖 Generating documentation for: {func['name']}...")
+    # 2. Loop through every .py file in that folder
+    for file_path in test_folder.glob("*.py"):
+        print(f"🔍 Processing: {file_path.name}")
         
-        # We send the raw code 'body' to Llama 3
-        ai_doc = gen.generate_docstring(func['body'])
+        functions = get_functions_from_file(file_path)
         
-        # Append to our README string
-        readme_content += f"### `def {func['name']}`\n"
-        readme_content += f"{ai_doc}\n\n"
-        readme_content += "```python\n"
-        readme_content += f"{func['body']}\n"
-        readme_content += "```\n\n---\n\n"
-
-    # 5. Save the final README
-    output_path = pathlib.Path("output/README.md")
-    output_path.parent.mkdir(exist_ok=True) # Create folder if it doesn't exist
-    
-    with open(output_path, "w") as f:
-        f.write(readme_content)
-    
-    print(f"Success! Documentation saved to {output_path}")
-
-if __name__ == "__main__":
-    main()
+        # ... (rest of your generation logic) ...
+        
+        # Save each README with a unique name
+        output_name = f"README_{file_path.stem}.md"
+        output_path = pathlib.Path("output") / output_name
+        
+        with open(output_path, "w") as f:
+            f.write(readme_content)
+            
+    print("✅ All files documented!")
