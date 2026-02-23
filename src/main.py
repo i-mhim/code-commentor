@@ -1,45 +1,66 @@
+import argparse
 import pathlib
-from parser import get_functions_from_file
-from generator import DocGenerator
+from .parser import get_functions_from_file
+from .generator import DocGenerator
+
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate AI-powered docstrings for Python files."
+    )
+    parser.add_argument(
+        "path",
+        nargs="?",
+        help="Python file or directory to analyze (defaults to ./tests).",
+    )
+    args = parser.parse_args()
+
     gen = DocGenerator(model_name="llama3")
-    test_folder = pathlib.Path("tests")
-    
-    # 1. Iterate through every .py file in the tests directory
-    for file_path in test_folder.glob("*.py"):
-        print(f"🔍 Analyzing: {file_path.name}...")
-        
-        # 2. INITIALIZE readme_content here! 
-        # This ensures each file gets its own clean documentation.
+
+    # Determine target path
+    target = pathlib.Path(args.path) if args.path else pathlib.Path("tests")
+
+    if target.is_file():
+        files = [target]
+    elif target.is_dir():
+        files = list(target.glob("*.py"))
+    else:
+        print(f"❌ Path not found: {target}")
+        return
+
+    if not files:
+        print(f"⚠️ No .py files found in {target}")
+        return
+
+    # Iterate through each selected .py file
+    for file_path in files:
+        print(f"🔍 Analyzing: {file_path}...")
+
         readme_content = f"# Documentation for {file_path.name}\n\n"
         readme_content += "## ⚙️ Function Overview\n\n"
-        
-        # 3. Extract functions from the current file
+
         functions = get_functions_from_file(file_path)
-        
+
         if not functions:
             print(f"⚠️ No functions found in {file_path.name}")
             continue
 
-        # 4. Loop through functions and build the content
         for func in functions:
             print(f"  🤖 Documenting: {func['name']}...")
-            ai_doc = gen.generate_docstring(func['body'])
-            
+            ai_doc = gen.generate_docstring(func["body"])
+
             readme_content += f"### `def {func['name']}`\n"
             readme_content += f"{ai_doc}\n\n"
             readme_content += "```python\n"
             readme_content += f"{func['body']}\n"
             readme_content += "```\n\n---\n\n"
 
-        # 5. Save the specific README for this file
         output_path = pathlib.Path("output") / f"README_{file_path.stem}.md"
         output_path.parent.mkdir(exist_ok=True)
-        
+
         with open(output_path, "w") as f:
             f.write(readme_content)
-            
+
         print(f"✅ Created: {output_path.name}")
 
 if __name__ == "__main__":
